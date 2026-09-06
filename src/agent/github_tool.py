@@ -23,7 +23,7 @@ def call_github_api(endpoint: str, params: dict) -> dict:
         "Authorization": f"Bearer {token}",
         "X-GitHub-Api-Version": "2022-11-28",
     }
-    endpoint = endpoint.rstrip("/")
+    endpoint = "/" + endpoint.strip("/")
     endpoint = endpoint.replace("/issues/pulls", "/pulls")
     if endpoint == "/search/pulls":
         search_params = params if isinstance(params, dict) else {}

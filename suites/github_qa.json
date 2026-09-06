@@ -1,0 +1,42 @@
+[
+  {
+    "question": "How many open issues are there, excluding pull requests?",
+    "expected_answer": 27
+  },
+  {
+    "question": "How many closed issues are there, excluding pull requests?",
+    "expected_answer": 13
+  },
+  {
+    "question": "How many total issues are there, excluding pull requests?",
+    "expected_answer": 40
+  },
+  {
+    "question": "How many issues have the bug label?",
+    "expected_answer": 10
+  },
+  {
+    "question": "How many issues have the question label?",
+    "expected_answer": 4
+  },
+  {
+    "question": "How many pull requests are there in total?",
+    "expected_answer": 16
+  },
+  {
+    "question": "How many pull requests have been merged?",
+    "expected_answer": 11
+  },
+  {
+    "question": "How many pull requests are currently open?",
+    "expected_answer": 0
+  },
+  {
+    "question": "How many pull requests are closed without being merged?",
+    "expected_answer": 5
+  },
+  {
+    "question": "How many pull requests have titles beginning with 'Seed pull request'?",
+    "expected_answer": 15
+  }
+]

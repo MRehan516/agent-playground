@@ -46,9 +46,10 @@ GITHUB_API_TOOL = {
 
 def _answer_matches(answer: str, expected: Any) -> bool:
     match = re.search(r"FINAL ANSWER:\s*([^\r\n]*)", answer, re.IGNORECASE)
-    if not match:
+    if match:
+        extracted = re.sub(r"[^0-9A-Za-z]+$", "", match.group(1).strip())
+    else:
         return False
-    extracted = re.sub(r"[^0-9A-Za-z]+$", "", match.group(1).strip())
 
     if isinstance(expected, bool):
         normalized = {
@@ -125,7 +126,7 @@ def run_round(
                     },
                 ]
                 tool_calls_used = 0
-                for _ in range(5):
+                for _ in range(8):
                     if first_llm_call:
                         print(open(system_prompt_path).read()[:100])
                         first_llm_call = False
@@ -139,11 +140,53 @@ def run_round(
                     message = response.choices[0].message
                     if not message.tool_calls:
                         final_answer = message.content or ""
+                        if not re.search(r"FINAL ANSWER:\s*[^\r\n]+", final_answer, re.IGNORECASE):
+                            messages.append(
+                                {
+                                    "role": "assistant",
+                                    "content": final_answer,
+                                }
+                            )
+                            messages.append(
+                                {
+                                    "role": "user",
+                                    "content": (
+                                        "Restate only the final result on exactly one line in this format: "
+                                        "FINAL ANSWER: <value>. Do not include any other text."
+                                    ),
+                                }
+                            )
+                            response = client.chat.completions.create(
+                                model="glm-4-7-flash",
+                                messages=messages,
+                                tools=[GITHUB_API_TOOL],
+                            )
+                            if response.usage:
+                                total_tokens += response.usage.total_tokens or 0
+                            final_answer = response.choices[0].message.content or ""
                         break
 
                     tool_calls_used += len(message.tool_calls)
-                    if tool_calls_used > 5:
-                        failure_note = "exceeded tool-call budget"
+                    if tool_calls_used > 8:
+                        messages.append(message.model_dump(exclude_none=True))
+                        messages.append(
+                            {
+                                "role": "user",
+                                "content": (
+                                    "You have reached the tool-call limit. Based only on the "
+                                    "information gathered so far, give your best answer now on "
+                                    "exactly one line: FINAL ANSWER: <value>."
+                                ),
+                            }
+                        )
+                        response = client.chat.completions.create(
+                            model="glm-4-7-flash",
+                            messages=messages,
+                            tools=[],
+                        )
+                        if response.usage:
+                            total_tokens += response.usage.total_tokens or 0
+                        final_answer = response.choices[0].message.content or ""
                         break
                     messages.append(message.model_dump(exclude_none=True))
                     for tool_call in message.tool_calls:
@@ -168,7 +211,23 @@ def run_round(
                         )
                 else:
                     if final_answer is None:
-                        failure_note = "exceeded tool-call budget"
+                        response = client.chat.completions.create(
+                            model="glm-4-7-flash",
+                            messages=[
+                                *messages,
+                                {
+                                    "role": "user",
+                                    "content": (
+                                        "You have reached the tool-call limit. Give your best "
+                                        "answer now on exactly one line: FINAL ANSWER: <value>."
+                                    ),
+                                },
+                            ],
+                            tools=[],
+                        )
+                        if response.usage:
+                            total_tokens += response.usage.total_tokens or 0
+                        final_answer = response.choices[0].message.content or ""
             except Exception as error:
                 final_answer = None
                 failure_note = str(error)

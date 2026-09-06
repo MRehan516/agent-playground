@@ -106,9 +106,16 @@ def classify_failure(case: dict[str, Any]) -> tuple[str, str]:
 def classify_round(round_path: str = "results/runs/round1.json") -> list[dict[str, Any]]:
     """Classify every failed case and persist its deduplicated lesson."""
     result = json.loads(Path(round_path).read_text(encoding="utf-8"))
+    from .runner import _answer_matches
+
     classified = []
     for case in result["tasks"]:
-        if not case.get("passed", False):
+        # Regrade stored answers before classification so stale pre-regrade flags
+        # cannot turn a passing task into a lesson.
+        passed = _answer_matches(case.get("answer", ""), case["expected_answer"])
+        case["passed"] = passed
+        case["status"] = "passed" if passed else "failed"
+        if not passed:
             label, lesson = classify_failure(case)
             classified.append({**case, "label": label, "lesson": lesson})
     append_new_lessons([item["lesson"] for item in classified], added_round=1)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import json
 from typing import Any
 
 import requests
@@ -23,6 +24,10 @@ def call_github_api(endpoint: str, params: dict) -> dict:
         "Authorization": f"Bearer {token}",
         "X-GitHub-Api-Version": "2022-11-28",
     }
+    if isinstance(params, str):
+        params = json.loads(params)
+    if not isinstance(params, dict):
+        raise TypeError("GitHub API params must be an object")
     endpoint = "/" + endpoint.strip("/")
     endpoint = endpoint.replace("/issues/pulls", "/pulls")
     if endpoint == "/search/pulls":

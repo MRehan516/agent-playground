@@ -27,11 +27,25 @@ def regenerate_prompt(
     source_path: str = "prompts/system_v1.md",
     target_path: str = "prompts/system_v2.md",
 ) -> None:
-    """Write system_v2 with the literal contents of memory.md inline."""
+    """Write a prompt containing every current, unique lesson.
+
+    Validate the rendered output so a stale or truncated prompt cannot be
+    mistaken for a successful regeneration.
+    """
     source = Path(source_path).read_text(encoding="utf-8").rstrip()
-    memory_text = MEMORY_PATH.read_text(encoding="utf-8").strip() if MEMORY_PATH.exists() else ""
+    lessons = list(dict.fromkeys(read_lessons()))
+    memory_text = "\n".join(lessons)
     section = "\n\n## Lessons from previous attempts\n"
-    Path(target_path).write_text(source + section + memory_text + "\n", encoding="utf-8")
+    rendered = source + section + memory_text + "\n"
+    target = Path(target_path)
+    temporary = target.with_name(f"{target.name}.tmp")
+    temporary.write_text(rendered, encoding="utf-8")
+    actual = temporary.read_text(encoding="utf-8")
+    expected = source + section + "\n".join(lessons) + "\n"
+    if actual != expected:
+        temporary.unlink(missing_ok=True)
+        raise RuntimeError(f"Generated prompt validation failed for {target_path}")
+    temporary.replace(target)
 
 
 def append_new_lessons(lessons: list[str], added_round: int) -> list[dict[str, Any]]:

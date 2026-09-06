@@ -1,6 +1,11 @@
 {
-  "round": 1,
-  "total_rounds": 3,
+  "round": {
+    "round_name": "round1",
+    "round_number": 1,
+    "success_rate": 0.5,
+    "avg_tokens": 7175.5,
+    "avg_latency": 20.11361532999963
+  },
   "tasks": [
     {
       "task_number": 1,
@@ -102,17 +107,5 @@
       "tokens_used": 3208,
       "latency": 28.54631149999841
     }
-  ],
-  "memory_lines": [],
-  "round_results": [
-    {
-      "round_name": "round1",
-      "round_number": 1,
-      "success_rate": 0.5,
-      "avg_tokens": 7175.5,
-      "avg_latency": 20.11361532999963
-    },
-    null,
-    null
   ]
 }

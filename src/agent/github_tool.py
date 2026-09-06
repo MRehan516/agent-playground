@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from typing import Any
 
 import requests
@@ -22,8 +23,21 @@ def call_github_api(endpoint: str, params: dict) -> dict:
         "Authorization": f"Bearer {token}",
         "X-GitHub-Api-Version": "2022-11-28",
     }
-    url = f"{API_ROOT}{endpoint}"
-    response = requests.get(url, headers=headers, params=params)
+    endpoint = endpoint.rstrip("/")
+    endpoint = endpoint.replace("/issues/pulls", "/pulls")
+    if endpoint == "/search/pulls":
+        search_params = params if isinstance(params, dict) else {}
+        endpoint = "/search/issues"
+        params = {**search_params, "q": f"{search_params.get('q', '')} type:pr"}
+    label_match = re.match(r"^(?P<issues>/repos/[^/]+/[^/]+/issues)/labels/(?P<label>[^/]+)$", endpoint)
+    if label_match:
+        endpoint = label_match.group("issues")
+        params = {**(params if isinstance(params, dict) else {}), "labels": label_match.group("label")}
+    url = f"{API_ROOT}/{endpoint.lstrip('/')}"
+    request_params = dict(params) if isinstance(params, dict) else {}
+    if endpoint.endswith("/issues"):
+        request_params.pop("type", None)
+    response = requests.get(url, headers=headers, params=request_params)
     response.raise_for_status()
     result: Any = response.json()
 
